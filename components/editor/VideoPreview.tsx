@@ -1,6 +1,5 @@
 "use client"
 import React, { useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Film, Play, Pause } from 'lucide-react';
 import { useEditorStore } from '@/stores/editorStore';
 
@@ -94,11 +93,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             <div className="absolute inset-0 bg-grid opacity-5" />
 
             {/* Preview Window */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative w-full max-w-4xl aspect-video bg-black rounded-lg border border-white/20 shadow-2xl overflow-hidden group"
-            >
+            <div className="relative w-full max-w-4xl aspect-video bg-black rounded-lg border border-white/20 shadow-2xl overflow-hidden group">
                 {activeClip ? (
                     <>
                         {/* Actual Video Element */}
@@ -125,10 +120,10 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
                 )}
 
                 {/* Overlay Controls */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center">
                     <button
                         onClick={onTogglePlay}
-                        className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/50 transition-all hover:scale-110"
+                        className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/50"
                     >
                         {isPlaying ? (
                             <Pause className="w-8 h-8 text-white" />
@@ -161,7 +156,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
                         {activeClip.clip.name}
                     </div>
                 )}
-            </motion.div>
+            </div>
         </div>
     );
 };

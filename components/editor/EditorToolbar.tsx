@@ -10,13 +10,19 @@ interface EditorToolbarProps {
     onRedo: () => void;
     onImport: () => void;
     onExport: () => void;
+    onSplit: () => void;
+    onDelete: () => void;
+    canSplit: boolean;
 }
 
 const EditorToolbar: React.FC<EditorToolbarProps> = ({
     onUndo,
     onRedo,
     onImport,
-    onExport
+    onExport,
+    onSplit,
+    onDelete,
+    canSplit
 }) => {
     return (
         <div className="h-14 bg-surface border-b border-white/10 flex items-center px-4 gap-4 shrink-0">
@@ -32,9 +38,15 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 <ToolButton icon={Undo2} tooltip="Undo" onClick={onUndo} />
                 <ToolButton icon={Redo2} tooltip="Redo" onClick={onRedo} />
                 <div className="w-px h-6 bg-white/10 mx-2" />
-                <ToolButton icon={Scissors} tooltip="Split" active />
+                <ToolButton 
+                    icon={Scissors} 
+                    tooltip="Split at playhead (S)" 
+                    onClick={onSplit}
+                    active={canSplit}
+                    disabled={!canSplit}
+                />
                 <ToolButton icon={Copy} tooltip="Duplicate" />
-                <ToolButton icon={Trash2} tooltip="Delete" />
+                <ToolButton icon={Trash2} tooltip="Delete selected clip" onClick={onDelete} />
                 <div className="w-px h-6 bg-white/10 mx-2" />
                 <ToolButton icon={Crop} tooltip="Crop" />
                 <ToolButton icon={RotateCw} tooltip="Rotate" />
@@ -69,18 +81,23 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
     );
 };
 
-const ToolButton = ({ icon: Icon, tooltip, active = false, onClick }: {
+const ToolButton = ({ icon: Icon, tooltip, active = false, onClick, disabled = false }: {
     icon: any;
     tooltip: string;
     active?: boolean;
     onClick?: () => void;
+    disabled?: boolean;
 }) => (
     <button
         onClick={onClick}
-        className={`p-2 rounded-lg transition-all relative group ${active
-                ? 'bg-emerald-500/20 text-emerald-400'
-                : 'hover:bg-white/5 text-zinc-400 hover:text-white'
-            }`}
+        disabled={disabled}
+        className={`p-2 rounded-lg transition-all relative group ${
+            disabled 
+                ? 'opacity-30 cursor-not-allowed text-zinc-600'
+                : active
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'hover:bg-white/5 text-zinc-400 hover:text-white'
+        }`}
         title={tooltip}
     >
         <Icon className="w-5 h-5" />

@@ -55,6 +55,8 @@ interface EditorStore {
     addClipToTimeline: (videoId: string, trackId: number) => void;
     removeClip: (clipId: string) => void;
     updateClip: (clipId: string, updates: Partial<Clip>) => void;
+    splitClip: (clipId: string, splitTime: number) => void;
+    trimClip: (clipId: string, trimStart: number, trimEnd: number) => void;
     setPlaying: (playing: boolean) => void;
     setCurrentTime: (time: number) => void;
     setSelectedClip: (clipId: string | null) => void;
@@ -292,6 +294,128 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
                 )
             }))
         }));
+    },
+
+    splitClip: (clipId: string, splitTime: number) => {
+        const state = get();
+        
+        // Find the clip to split
+        let clipToSplit: Clip | null = null;
+        let trackToSplit: Track | null = null;
+        
+        for (const track of state.tracks) {
+            const clip = track.clips.find(c => c.id === clipId);
+            if (clip) {
+                clipToSplit = clip;
+                trackToSplit = track;
+                break;
+            }
+        }
+
+        if (!clipToSplit || !trackToSplit) return;
+
+        // Check if split time is within clip bounds
+        const clipStart = clipToSplit.start;
+        const clipEnd = clipToSplit.start + clipToSplit.duration;
+        
+        if (splitTime <= clipStart || splitTime >= clipEnd) {
+            console.log('Split time is outside clip bounds');
+            return;
+        }
+
+        // Calculate relative time within the clip
+        const relativeSplitTime = splitTime - clipStart;
+        
+        // Calculate trim points for both clips
+        const firstClipDuration = relativeSplitTime;
+        const secondClipDuration = clipToSplit.duration - relativeSplitTime;
+        
+        // First clip (left side)
+        const firstClip: Clip = {
+            ...clipToSplit,
+            id: clipToSplit.id, // Keep original ID
+            duration: firstClipDuration,
+            trimEnd: clipToSplit.trimStart + firstClipDuration,
+        };
+
+        // Second clip (right side)
+        const secondClip: Clip = {
+            ...clipToSplit,
+            id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            start: splitTime,
+            duration: secondClipDuration,
+            trimStart: clipToSplit.trimStart + relativeSplitTime,
+        };
+
+        // Replace the original clip with the two new clips
+        const newTracks = state.tracks.map(track => {
+            if (track.id === trackToSplit!.id) {
+                const clipIndex = track.clips.findIndex(c => c.id === clipId);
+                if (clipIndex !== -1) {
+                    const newClips = [...track.clips];
+                    newClips.splice(clipIndex, 1, firstClip, secondClip);
+                    return { ...track, clips: newClips };
+                }
+            }
+            return track;
+        });
+
+        set({
+            tracks: newTracks,
+            selectedClipId: firstClip.id, // Select the first clip after split
+        });
+
+        console.log('✅ Clip split at', splitTime, 'seconds');
+    },
+
+    trimClip: (clipId: string, newTrimStart: number, newTrimEnd: number) => {
+        const state = get();
+        const video = state.videos.find(v => {
+            const clip = state.tracks
+                .flatMap(t => t.clips)
+                .find(c => c.id === clipId);
+            return clip && v.id === clip.videoId;
+        });
+
+        if (!video) return;
+
+        // Find and update the clip
+        const updatedTracks = state.tracks.map(track => ({
+            ...track,
+            clips: track.clips.map(clip => {
+                if (clip.id === clipId) {
+                    // Calculate new duration and position adjustments
+                    const trimDuration = newTrimEnd - newTrimStart;
+                    const trimDelta = newTrimStart - clip.trimStart;
+                    
+                    // Update clip
+                    return {
+                        ...clip,
+                        trimStart: Math.max(0, newTrimStart),
+                        trimEnd: Math.min(video.duration, newTrimEnd),
+                        duration: trimDuration,
+                        start: clip.start + trimDelta, // Adjust start position if trimming from beginning
+                    };
+                }
+                return clip;
+            })
+        }));
+
+        // Recalculate timeline duration
+        let maxDuration = 120;
+        updatedTracks.forEach(track => {
+            track.clips.forEach(clip => {
+                const clipEnd = clip.start + clip.duration;
+                maxDuration = Math.max(maxDuration, clipEnd);
+            });
+        });
+
+        set({
+            tracks: updatedTracks,
+            duration: maxDuration,
+        });
+
+        console.log('✅ Clip trimmed');
     },
 
     setPlaying: (playing: boolean) => {
